@@ -12,6 +12,9 @@ import {
   plannerSystemPrompt,
   validataionSystemPrompt,
 } from "./prompts";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export interface AgentState {
   //the task to be completed
@@ -27,6 +30,13 @@ export interface AgentState {
     web_task: boolean;
     done: boolean;
   };
+  current_state: {
+    page_summary: string;
+    evaluation_previous_goal: string;
+    memory: string;
+    next_goal: string;
+  };
+  action: { [key: string]: string }[];
   // done indicates whether task is completed as per navigator and planner
   done: boolean;
   // validation_done indicates whether we're done with the validation, and
@@ -65,7 +75,7 @@ const planningAgent = createAgent<AgentState>({
 });
 
 const navigatorAgent = createAgent<AgentState>({
-  name: "Browser Agent",
+  name: "Navigator Agent",
   description: "Agent that can use a browser and navigates the web pages.",
   system: `
   ${navigatorSystemPrompt} 
@@ -85,7 +95,8 @@ const navigatorAgent = createAgent<AgentState>({
         }),
         action: z.array(
           z.object({
-            one_action_name: z.string(),
+            key: z.string(),
+            value: z.string(),
           })
         ),
       }),
@@ -95,6 +106,15 @@ const navigatorAgent = createAgent<AgentState>({
       },
     }),
   ],
+});
+
+const browserAgent = createAgent<AgentState>({
+  name: "Browser Agent",
+  description: "Agent that can use a browser and navigates the web pages.",
+  system: ({ network }) => `
+  Execute these actions specified in the navigator agent using the playwright mcp server tools
+
+  ${network?.state.data.action}`,
   mcpServers: [
     {
       name: "playwright",
@@ -104,6 +124,14 @@ const navigatorAgent = createAgent<AgentState>({
       },
     },
   ],
+  lifecycle: {
+    // onFinish: ({ network }) => {
+    //   if (network?.state.data.action) {
+    //     console.log("onFinish: resetting action", network?.state.data.action);
+    //     // network.state.data.action = [];
+    //   }
+    // },
+  },
 });
 
 const validationAgent = createAgent<AgentState>({
@@ -133,11 +161,16 @@ const validationAgent = createAgent<AgentState>({
 
 const network = createNetwork<AgentState>({
   name: "Browser automation network",
-  agents: [planningAgent, navigatorAgent, validationAgent],
+  agents: [planningAgent, navigatorAgent, browserAgent, validationAgent],
   router: ({ network, input, callCount }): Agent<AgentState> | undefined => {
-    console.log("state", JSON.stringify(network.state.data, null, 2));
+    console.log("callCount ", callCount);
+    console.log("state ", JSON.stringify(network.state.data, null, 2));
+    console.log("\n=========\n");
     const maxCalls = 5;
     if (callCount > maxCalls) {
+      return undefined;
+    }
+    if (network.state.data.validation_result?.is_valid) {
       return undefined;
     }
     //save the task todo in state
@@ -145,7 +178,8 @@ const network = createNetwork<AgentState>({
       network.state.data.task = input;
     }
     // We want to plan every n-th call, otherwise navigate.
-    if (network.state.data.plan === undefined || callCount % 5 === 0) {
+    // if (network.state.data.plan === undefined || callCount % 5 === 0) {
+    if (callCount % 5 === 0) {
       return planningAgent;
     }
     // if (!network.state.data.plan?.web_task) {
@@ -154,8 +188,8 @@ const network = createNetwork<AgentState>({
     if (network.state.data.done) {
       return validationAgent;
     }
-    if (network.state.data.validation_result?.is_valid) {
-      return undefined;
+    if (network.state.data.action) {
+      return browserAgent;
     }
     return navigatorAgent;
   },
@@ -169,4 +203,6 @@ const server = createServer({
   networks: [network],
 });
 
-server.listen(3000, () => console.log("Agent kit network running!"));
+// server.listen(3000, () => console.log("Agent kit network running!"));
+
+network.run("Go to https://www.google.com?hl=en and search for 'agent kit'");
