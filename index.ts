@@ -12,9 +12,7 @@ import {
   plannerSystemPrompt,
   validataionSystemPrompt,
 } from "./prompts";
-import dotenv from "dotenv";
-
-dotenv.config();
+import "dotenv/config";
 
 export interface AgentState {
   //the task to be completed
@@ -36,7 +34,8 @@ export interface AgentState {
     memory: string;
     next_goal: string;
   };
-  action: { [key: string]: string }[];
+  page_content: string;
+  action: { [key: string]: { desc: string; ref: string; text: string } }[];
   // done indicates whether task is completed as per navigator and planner
   done: boolean;
   // validation_done indicates whether we're done with the validation, and
@@ -77,10 +76,12 @@ const planningAgent = createAgent<AgentState>({
 const navigatorAgent = createAgent<AgentState>({
   name: "Navigator Agent",
   description: "Agent that can use a browser and navigates the web pages.",
-  system: `
+  system: ({ network }) => `
   ${navigatorSystemPrompt} 
   
   when using the browser, if you see popups or consents about cookies, privacy or GDPR like things. Accept or give consent.
+  
+  ${JSON.stringify(network?.state.data.page_content)}  
   `,
   tools: [
     createTool({
@@ -96,7 +97,11 @@ const navigatorAgent = createAgent<AgentState>({
         action: z.array(
           z.object({
             key: z.string(),
-            value: z.string(),
+            value: z.object({
+              desc: z.string(),
+              ref: z.string(),
+              text: z.string(),
+            }),
           })
         ),
       }),
@@ -114,7 +119,7 @@ const browserAgent = createAgent<AgentState>({
   system: ({ network }) => `
   Execute these actions specified in the navigator agent using the playwright mcp server tools
 
-  ${network?.state.data.action}`,
+  ${JSON.stringify(network?.state.data.action[0])}`,
   mcpServers: [
     {
       name: "playwright",
@@ -125,12 +130,18 @@ const browserAgent = createAgent<AgentState>({
     },
   ],
   lifecycle: {
-    // onFinish: ({ network }) => {
-    //   if (network?.state.data.action) {
-    //     console.log("onFinish: resetting action", network?.state.data.action);
-    //     // network.state.data.action = [];
-    //   }
-    // },
+    onFinish: ({ network, result }) => {
+      if (network?.state.data.action) {
+        console.log("onFinish: updating action", network?.state.data.action);
+        network.state.data.action.shift();
+      }
+      // console.log("onFinish: result", JSON.stringify(result, null, 2));
+      if (network && result.toolCalls[0]?.content?.data[0]?.text) {
+        network.state.data.page_content =
+          result.toolCalls[0].content.data[0].text;
+      }
+      return result;
+    },
   },
 });
 
@@ -164,9 +175,9 @@ const network = createNetwork<AgentState>({
   agents: [planningAgent, navigatorAgent, browserAgent, validationAgent],
   router: ({ network, input, callCount }): Agent<AgentState> | undefined => {
     console.log("callCount ", callCount);
-    console.log("state ", JSON.stringify(network.state.data, null, 2));
+    // console.log("state ", JSON.stringify(network.state.data, null, 2));
     console.log("\n=========\n");
-    const maxCalls = 5;
+    const maxCalls = 10;
     if (callCount > maxCalls) {
       return undefined;
     }
@@ -188,7 +199,7 @@ const network = createNetwork<AgentState>({
     if (network.state.data.done) {
       return validationAgent;
     }
-    if (network.state.data.action) {
+    if (network.state.data.action && network.state.data.action.length > 0) {
       return browserAgent;
     }
     return navigatorAgent;
@@ -203,6 +214,11 @@ const server = createServer({
   networks: [network],
 });
 
-// server.listen(3000, () => console.log("Agent kit network running!"));
+server.listen(3000, () => console.log("Agent kit network running!"));
 
-network.run("Go to https://www.google.com?hl=en and search for 'agent kit'");
+const task = `
+open https://www.berkshirehathaway.com/. 
+navigate to the 'Special letters' page and
+open the letter from Buffett
+`;
+network.run(task);
