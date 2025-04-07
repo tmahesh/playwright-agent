@@ -76,6 +76,7 @@ const browserAgent = createAgent<AgentState>({
     },
   },
 });
+//hack for one instance of MCP: https://github.com/inngest/agent-kit/pull/129
 await browserAgent.listMCPTools(mcpServers[0]);
 console.log("browserAgent.tools count:", browserAgent.tools.size);
 
