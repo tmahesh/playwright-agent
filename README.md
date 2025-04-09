@@ -11,7 +11,7 @@ This project implements a multi-agent system for browser automation, where diffe
 - Execute browser actions
 - Validate results
 
-## Architecture
+## Architecture (TODO)
 
 The system consists of four specialized agents:
 
@@ -77,20 +77,18 @@ npm install
 3. Set up environment variables:
 
 ```bash
-cp .env.example .env
+cp .env.sample .env
 # Edit .env with your OpenAI API key and other configurations
 ```
 
-4. run playwright-mcp and inngest-cli
+4. run these commands on diff terminals: index.ts, playwright-mcp, inngest-cli
 
 ```
 npx @playwright/mcp@latest --port 8931
 
 npx tsx index.ts
 
-OR
-
-npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
+npx inngest-cli@latest dev --no-discovery -u http://localhost:3000/api/inngest -v
 ```
 
 ## Contributing

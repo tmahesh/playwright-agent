@@ -1,13 +1,5 @@
-import {
-  Agent,
-  createAgent,
-  createNetwork,
-  createState,
-  createTool,
-  openai,
-} from "@inngest/agent-kit";
+import { Agent, createAgent, createNetwork, openai } from "@inngest/agent-kit";
 import { createServer } from "@inngest/agent-kit/server";
-import { z } from "zod";
 import {
   initialMessageSystemPrompt,
   performNextStepSystemPrompt,
@@ -25,11 +17,6 @@ export interface AgentState {
   // done indicates whether task is completed
   done: boolean;
 }
-
-// const state = createState<AgentState>({
-//   task: "",
-//   done: false,
-// });
 
 const mcpServers = [
   {
@@ -49,8 +36,8 @@ const browserAgent = createAgent<AgentState>({
   `,
   lifecycle: {
     onStart: async ({ prompt, history }) => {
-      if (history!.length > 1) {
-        history!.push({
+      if (history && history.length > 1) {
+        history.push({
           role: "system",
           type: "text",
           content: performNextStepSystemPrompt,
@@ -58,18 +45,12 @@ const browserAgent = createAgent<AgentState>({
       }
       return {
         prompt,
-        history,
+        history: history ?? [],
+        stop: false,
       };
     },
     onResponse({ network, result }) {
-      console.log(
-        "onResponse",
-        JSON.stringify(result.output[0]?.content, null, 2)
-      );
-      if (
-        // network!.state.data.callCount > 1 &&
-        result.output[0].stop_reason === "stop"
-      ) {
+      if (result.output[0].stop_reason === "stop") {
         network!.state.data.done = true;
       }
       return result;
@@ -77,7 +58,7 @@ const browserAgent = createAgent<AgentState>({
   },
 });
 //hack for one instance of MCP: https://github.com/inngest/agent-kit/pull/129
-await browserAgent.listMCPTools(mcpServers[0]);
+await browserAgent["listMCPTools"](mcpServers[0]);
 console.log("browserAgent.tools count:", browserAgent.tools.size);
 
 const network = createNetwork<AgentState>({
@@ -109,12 +90,11 @@ const network = createNetwork<AgentState>({
 const server = createServer({
   networks: [network],
 });
+server.listen(3000, () => console.log("Agent kit network running!"));
 
 // const task = `
 // open https://www.berkshirehathaway.com/.
 // navigate to the 'Special letters' page and
 // open the letter from Buffett
 // `;
-// network.run(task);
-
-server.listen(3000, () => console.log("Agent kit network running!"));
+// await network.run(task);
