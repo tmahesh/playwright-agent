@@ -1,6 +1,6 @@
 # AgentKit Browser Automation
 
-A sophisticated browser automation framework built with AgentKit, featuring a multi-agent system for intelligent web navigation and task execution.
+A sophisticated browser automation framework built with Inngest-AgentKit and Firebase-Genkit, featuring a multi-agent system for intelligent web navigation and task execution.
 
 ## Overview
 
@@ -55,9 +55,10 @@ The system consists of four specialized agents:
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher)
 - npm or yarn
 - OpenAI API key (for GPT models)
+- Goolge AI key (for gemini models)
 
 ### Installation
 
@@ -78,7 +79,7 @@ npm install
 
 ```bash
 cp .env.sample .env
-# Edit .env with your OpenAI API key and other configurations
+# Edit .env with your API keys
 ```
 
 4. run these commands on diff terminals: index.ts, playwright-mcp, inngest-cli
@@ -88,19 +89,23 @@ npx @playwright/mcp@latest --port 8931
 
 npx tsx index.ts
 
+#dev-server (optional)
 npx inngest-cli@latest dev --no-discovery -u http://localhost:3000/api/inngest -v
 ```
 
-## Contributing
+5. To run with genkit sdk and
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+```bash
+npx tsx genkit.ts
+
+#dev server(optional but recommended)
+#It has fantastic observaibility built-in with opentelemetry
+npx genkit start -- npx tsx --watch genkit.ts
+```
 
 ## Acknowledgments
 
+- [genKit](https://firebase.google.com/products/genkit)
 - [AgentKit](https://github.com/inngest/agent-kit)
 - [Playwright MCP](https://github.com/microsoft/playwright-mcp)
 - [openai-mcp-client](https://github.com/ResoluteError/openai-mcp-client/tree/main/src)

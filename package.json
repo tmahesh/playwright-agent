@@ -1,7 +1,15 @@
 {
   "type": "module",
   "dependencies": {
+    "@genkit-ai/express": "^1.6.2",
+    "@genkit-ai/googleai": "^1.6.2",
     "@inngest/agent-kit": "^0.7.1",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "genkit": "^1.6.2",
+    "genkitx-mcp": "^1.6.2",
+    "genkitx-openai": "^0.21.0"
+  },
+  "devDependencies": {
+    "genkit-cli": "^1.6.1"
   }
 }
