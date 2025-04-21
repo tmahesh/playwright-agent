@@ -31,7 +31,7 @@ for (const k in allActions) {
     playwrightToolList.push(allActions[k].__action.name);
   }
 }
-logger.info("playwrightToolList", playwrightToolList);
+// logger.info("playwrightToolList", playwrightToolList);
 
 export const browserAgent = ai.defineFlow(
   {
@@ -51,30 +51,31 @@ export const browserAgent = ai.defineFlow(
       tools: [...playwrightToolList],
       maxTurns: 10,
     });
-    return response.messages;
+    return response.message;
   }
 );
 
 import express from "express";
 import { expressHandler, startFlowServer } from "@genkit-ai/express";
 
-const app = express();
-app.use(express.json());
+// const app = express();
+// app.use(express.json());
 
-app.post("/flow", expressHandler(browserAgent));
+// app.post("/flow", expressHandler(browserAgent));
 
-// curl -X POST http://localhost:3000/flow -H "Content-Type: application/json" -d '{"data": "go to https://dns.google"}'
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
-});
-// startFlowServer({
-//   flows: [browserAgent],
-//   port: 3000,
+// // curl -X POST http://localhost:3000/flow -H "Content-Type: application/json" -d '{"data": "go to https://dns.google"}'
+// app.listen(3000, () => {
+//   console.log("Server is running on port 3000");
 // });
+startFlowServer({
+  flows: [browserAgent],
+  port: 3000,
+});
 
 const task = "Go to https://www.google.com and take a screenshot of the page.";
 const task1 = `
-open https://www.berkshirehathaway.com/.navigate to the 'Special letters' page and
+open https://www.berkshirehathaway.com/
+navigate to the 'Special letters' page and
 open the letter from Buffett
 `;
 async function main() {

@@ -10,6 +10,7 @@
     "genkitx-openai": "^0.21.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "genkit-cli": "^1.6.1"
   }
 }
