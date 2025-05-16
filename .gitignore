@@ -2,3 +2,5 @@ node_modules
 .inngest
 .env*
 !.env.sample
+.genkit
+gcp-service-account.json
